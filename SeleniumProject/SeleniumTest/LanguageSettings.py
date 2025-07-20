@@ -11,5 +11,5 @@ prefs = {
 options.add_experimental_option("prefs", prefs)
 driver = webdriver.Edge(options=options) #Create instance of Edge browser with specified options
 driver.get("https://www.youtube.com")
-time.sleep(5)
+time.sleep(10)
 driver.quit()

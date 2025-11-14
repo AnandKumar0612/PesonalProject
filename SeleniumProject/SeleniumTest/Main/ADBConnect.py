@@ -2,14 +2,13 @@ from ppadb.client import Client as AdbClient
 
 def run_adb_command_with_ppadb(udid):
     udid = udid
-    try:
-        if udid != "":
-            print(f"ADB workflow for : {udid}")
-        else:
-            print("No UDID to proceed")
-            return
-    except Exception as e:
-        print(f"No UDID: {e}")
+
+    #Check if UDID is empty
+    if udid != "":
+        print(f"ADB workflow for : {udid}")
+    else:
+        print("No UDID to proceed")
+        return
 
     # Connect to the ADB server
     client = AdbClient(host="127.0.0.1", port=5037)

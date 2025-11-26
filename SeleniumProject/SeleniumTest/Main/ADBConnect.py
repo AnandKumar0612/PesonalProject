@@ -1,6 +1,27 @@
 from ppadb.client import Client as AdbClient
 import subprocess
 
+def install_app(apkName):
+    apkName = apkName
+
+    # Check if apk name is empty
+    if apkName != "":
+        print(f"Checking for apk file : {apkName}")
+    else:
+        print("No apk file to proceed")
+        return
+
+    # Connect to the ADB server
+    client = AdbClient(host="127.0.0.1", port=5037)
+
+    # Get a list of connected devices
+    devices = client.devices()
+
+    for device in devices:
+        if device.is_installed(apkName):
+            print(f"{apkName} is already installed")
+        else:
+            print(f"{apkName} is not installed")
 
 def start_adb_daemon():
     # Command to explicitly start the server
@@ -18,7 +39,6 @@ def start_adb_daemon():
     except FileNotFoundError:
         # This occurs if 'adb' is not in the system's PATH
         print("ERROR: 'adb' command not found. Ensure Android platform-tools is in your system PATH.")
-
     return result
 
 def run_adb_command_with_ppadb(udid):
@@ -56,7 +76,7 @@ def run_adb_command_with_ppadb(udid):
     except Exception as e:
         print(f"Error executing command: {e}")
 
-    #install_app("com.vodafone.vtv.atv.de")
+    install_app("com.vodafone.vtv.atv.de")
 
     #Disconnect device
     client.remote_disconnect(udid)

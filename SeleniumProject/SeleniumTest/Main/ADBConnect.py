@@ -56,7 +56,7 @@ def start_adb_daemon():
 
 def run_adb_command_with_ppadb(udid):
     udid = udid
-    package = "com.vodafone.vtv.atv"
+    package = "com.vodafone.vtv.atv.pt"
     location = "C:/Users/andy9/Downloads/app_tvAndroidTvGenericStv_1.4.0.0_20251127_debug_debug.apk"
 
     #Check if UDID is empty
@@ -87,11 +87,15 @@ def run_adb_command_with_ppadb(udid):
     # Get App version
     try:
         vodafone_version = device.shell(f"dumpsys package {package} | grep versionName")
-        print(f"VTV Version: {vodafone_version.strip()}")
+        if vodafone_version == "":
+            print(f"No app present with {package}.")
+        else:
+            print(f"VTV Version: {vodafone_version.strip()}")
     except Exception as e:
         print(f"Error executing command: {e}")
 
     #install_app(package, location)
+    #device.uninstall(package)
 
     #Disconnect device
     client.remote_disconnect(udid)

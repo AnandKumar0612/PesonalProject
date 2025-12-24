@@ -54,10 +54,12 @@ def start_adb_daemon():
         print("ERROR: 'adb' command not found. Ensure Android platform-tools is in your system PATH.")
     return result
 
-def run_adb_command_with_ppadb(udid):
+def run_adb_command_with_ppadb(udid, uninstallThenInstall, package):
     udid = udid
-    package = "com.vodafone.vtv.atv.pt"
-    location = "C:/Users/andy9/Downloads/app_tvAndroidTvGenericStv_1.4.0.0_20251127_debug_debug.apk"
+    package = package
+    file_loc = "C:/Users/andy9/Downloads/"
+    location = file_loc + "app_tvAndroidTvPt_1.4.0.0_20251127_release.apk"
+    print(location)
 
     #Check if UDID is empty
     if udid != "":
@@ -94,8 +96,14 @@ def run_adb_command_with_ppadb(udid):
     except Exception as e:
         print(f"Error executing command: {e}")
 
-    #install_app(package, location)
-    #device.uninstall(package)
+    if uninstallThenInstall:
+        if device.uninstall(package):
+            install_app(package, location)
+        else:
+            print(f"Failed to uninstall package {package}")
+            return
+    else:
+        install_app(package, location)
 
     #Disconnect device
     client.remote_disconnect(udid)
@@ -103,6 +111,6 @@ def run_adb_command_with_ppadb(udid):
 if __name__ == "__main__":
     connection = start_adb_daemon()
     if connection:
-        run_adb_command_with_ppadb("192.168.50.24")
+        run_adb_command_with_ppadb("192.168.50.24", True, "com.vodafone.vtv.atv")
     else:
         print("Failed to start the adb daemon!")

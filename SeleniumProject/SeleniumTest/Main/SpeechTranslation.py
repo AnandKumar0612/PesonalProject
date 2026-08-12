@@ -21,18 +21,18 @@ def recognize_speech(recog, source):
 
 # Capture initial voice
 with mc as source:
-    print("Speak 'hello' to initiate the Translation!")
+    print("Speak 'Hey Andy!' to initiate the Translation!")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     MyText = recognize_speech(rec, source)
 
 # Check if the input contains 'hello'
-if MyText and 'hello' in MyText:
+if MyText and 'hey andy' in MyText:
     # Translator method for translation
     translator = Translator()
 
     # Source and target languages
     from_lang = 'en'
-    to_lang = 'hi'
+    to_lang = 'de'
 
     with mc as source:
         print("Speak a sentence to translate...")

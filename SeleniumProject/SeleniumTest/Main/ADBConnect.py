@@ -1,6 +1,7 @@
 from ppadb.client import Client as AdbClient
 import subprocess
 
+
 def install_app(apkName, fileLocation):
     apkName = apkName
     fileLocation = fileLocation
@@ -11,14 +12,14 @@ def install_app(apkName, fileLocation):
         print(f"Checking for apk file : {apkName}")
     else:
         print("No apk file to proceed")
-        return
+        return False
 
     #Check if file name is empty
     if fileLocation != "":
         print(f"Installing file!")
     else:
         print("No file location")
-        return
+        return False
 
     # Connect to the ADB server
     client = AdbClient(host="127.0.0.1", port=5037)
@@ -29,12 +30,15 @@ def install_app(apkName, fileLocation):
     for device in devices:
         if device.is_installed(apkName):
             print(f"{apkName} is already installed")
+            return True
         else:
             device.install(fileLocation)
             if device.is_installed(apkName):
                 print("App successfully installed")
+                return True
             else:
                 print("Failed to install app")
+                return False
 
 def start_adb_daemon():
     # Command to explicitly start the server
@@ -58,7 +62,7 @@ def run_adb_command_with_ppadb(udid, uninstallThenInstall, package):
     udid = udid
     package = package
     file_loc = "C:/Users/andy9/Downloads/"
-    location = file_loc + "app_tvAndroidTvPt_1.4.0.0_20251127_release.apk"
+    location = file_loc + "app_tvFireTvGenericStv_1.11.0.0_20260603_release.apk"
     print(location)
 
     #Check if UDID is empty
@@ -88,29 +92,51 @@ def run_adb_command_with_ppadb(udid, uninstallThenInstall, package):
 
     # Get App version
     try:
-        vodafone_version = device.shell(f"dumpsys package {package} | grep versionName")
-        if vodafone_version == "":
-            print(f"No app present with {package}.")
+        app_version = device.shell(f"dumpsys package {package} | grep versionName")
+        if app_version == "":
+            print(f"No app present with {package}. Need to install first!")
         else:
-            print(f"VTV Version: {vodafone_version.strip()}")
+            print(f"App Version: {app_version.strip()}")
     except Exception as e:
         print(f"Error executing command: {e}")
 
     if uninstallThenInstall:
         if device.uninstall(package):
-            install_app(package, location)
+            successInstall = install_app(package, location)
+            if successInstall:
+                Installedapp_version = device.shell(f"dumpsys package {package} | grep versionName")
+                if Installedapp_version == "":
+                    print(f"No app present with {package}. Need to install first!")
+                else:
+                    print(f"App Version: {Installedapp_version.strip()}")
+            else:
+                print(f"Failed to get the installed app version")
         else:
             print(f"Failed to uninstall package {package}")
             return
     else:
         install_app(package, location)
 
-    #Disconnect device
-    client.remote_disconnect(udid)
+def stop_adb_daemon():
+    cmdLine = ["adb", "kill-server"]
+
+    try:
+        # Run the adb kill-server command
+        stop = subprocess.run(cmdLine, capture_output=True, text=True, check=True)
+        print("ADB server stopped successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error stopping ADB server: {e.stderr}")
+    return stop
+
 
 if __name__ == "__main__":
     connection = start_adb_daemon()
     if connection:
-        run_adb_command_with_ppadb("192.168.50.24", True, "com.vodafone.vtv.atv")
+        install_process = run_adb_command_with_ppadb("192.168.0.160", True, "com.vodafone.vtv.atv")
+        if install_process:
+            print("Successfully installed the app")
+        else:
+            print("Failed to install app")
     else:
         print("Failed to start the adb daemon!")
+    stop_adb_daemon()

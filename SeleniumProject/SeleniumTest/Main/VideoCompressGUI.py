@@ -17,21 +17,36 @@ def compress_video(video_full_path, size_upper_bound, two_pass=True, filename_su
     try:
         probe = ffmpeg.probe(video_full_path)
         duration = float(probe['format']['duration'])
-        audio_bitrate = float(next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)['bit_rate'])
+
+        # Safely look for an audio stream
+        audio_stream = next((s for s in probe['streams'] if s['codec_type'] == 'audio'), None)
+        has_audio = audio_stream is not None
+
+        # Get audio bitrate if available, otherwise default or set to 0
+        if has_audio:
+            audio_bitrate = float(audio_stream.get('bit_rate', 128000))
+        else:
+            audio_bitrate = 0
+
         target_total_bitrate = (size_upper_bound * 1024 * 8) / (1.073741824 * duration)
 
         if target_total_bitrate < total_bitrate_lower_bound:
             messagebox.showerror("Error", "Bitrate is too low. Compression stopped.")
             return False
 
-        best_min_size = (min_audio_bitrate + min_video_bitrate) * (1.073741824 * duration) / (8 * 1024)
+        # Adjust minimum size calculation based on whether audio exists
+        effective_min_audio = min_audio_bitrate if has_audio else 0
+        best_min_size = (effective_min_audio + min_video_bitrate) * (1.073741824 * duration) / (8 * 1024)
         if size_upper_bound < best_min_size:
             messagebox.showwarning("Warning", f"Low quality! Recommended min size: {int(best_min_size)} KB")
 
-        if 10 * audio_bitrate > target_total_bitrate:
-            audio_bitrate = max(min_audio_bitrate, min(target_total_bitrate / 10, max_audio_bitrate))
+        if has_audio:
+            if 10 * audio_bitrate > target_total_bitrate:
+                audio_bitrate = max(min_audio_bitrate, min(target_total_bitrate / 10, max_audio_bitrate))
+            video_bitrate = target_total_bitrate - audio_bitrate
+        else:
+            video_bitrate = target_total_bitrate
 
-        video_bitrate = target_total_bitrate - audio_bitrate
         if video_bitrate < 1000:
             messagebox.showerror("Error", "Video bitrate too low! Compression stopped.")
             return False
@@ -40,15 +55,22 @@ def compress_video(video_full_path, size_upper_bound, two_pass=True, filename_su
         status_label.config(text="Compressing... Please wait.", fg="blue")
         root.update_idletasks()
 
+        # Build parameters dynamically depending on whether audio exists
         if two_pass:
+            pass2_params = {'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2}
+            if has_audio:
+                pass2_params.update({'c:a': 'aac', 'b:a': audio_bitrate})
+
             ffmpeg.output(i, os.devnull, **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 1, 'f': 'mp4'}) \
                 .overwrite_output().run()
-            ffmpeg.output(i, output_file_name,
-                          **{'c:v': 'libx264', 'b:v': video_bitrate, 'pass': 2, 'c:a': 'aac', 'b:a': audio_bitrate}) \
+            ffmpeg.output(i, output_file_name, **pass2_params) \
                 .overwrite_output().run()
         else:
-            ffmpeg.output(i, output_file_name,
-                          **{'c:v': 'libx264', 'b:v': video_bitrate, 'c:a': 'aac', 'b:a': audio_bitrate}) \
+            single_pass_params = {'c:v': 'libx264', 'b:v': video_bitrate}
+            if has_audio:
+                single_pass_params.update({'c:a': 'aac', 'b:a': audio_bitrate})
+
+            ffmpeg.output(i, output_file_name, **single_pass_params) \
                 .overwrite_output().run()
 
         if os.path.getsize(output_file_name) <= size_upper_bound * 1024:
